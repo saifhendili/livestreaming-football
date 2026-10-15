@@ -54,6 +54,13 @@ export default function InstallBanner() {
   const ios = isIos();
   if (hidden || (!prompt && !ios)) return null;
 
+  // Phones and tablets have a home screen; on a computer the app gets its own window.
+  const hint = !prompt
+    ? 'Tap the Share button, then “Add to Home Screen”.'
+    : window.matchMedia('(pointer: coarse)').matches
+      ? 'Launch it from your home screen.'
+      : 'Open it in its own window, like any other app.';
+
   const dismiss = () => {
     rememberDismissed();
     setHidden(true);
@@ -70,9 +77,7 @@ export default function InstallBanner() {
       <img className="install-icon" src="/icons/icon-192.png" alt="" width="40" height="40" />
       <p className="install-text">
         <strong>Install Kickoff Live</strong>
-        <span className="muted">
-          {prompt ? 'Launch it from your home screen.' : 'Tap the Share button, then “Add to Home Screen”.'}
-        </span>
+        <span className="muted">{hint}</span>
       </p>
       {prompt && (
         <button className="btn btn-small" onClick={install}>

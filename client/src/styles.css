@@ -620,7 +620,7 @@ button {
   display: flex;
   align-items: center;
   gap: 12px;
-  max-width: 1080px;
+  max-width: 1048px; /* the same width as the page content: .container minus its 16px side padding */
   margin: 12px auto 0;
   padding: 10px 14px;
   border: 1px solid var(--border);
@@ -669,7 +669,7 @@ button {
 }
 
 /* The banner sits outside .container, so keep it off the screen edges on phones. */
-@media (max-width: 1112px) {
+@media (max-width: 1080px) {
   .install-banner {
     margin-inline: 16px;
   }
