@@ -1,6 +1,10 @@
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, NavLink, Route, Routes } from 'react-router-dom';
+import ChannelWatch from './pages/ChannelWatch.jsx';
+import Channels from './pages/Channels.jsx';
 import Home from './pages/Home.jsx';
 import Watch from './pages/Watch.jsx';
+
+const navClass = ({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`;
 
 export default function App() {
   return (
@@ -11,11 +15,21 @@ export default function App() {
           Kickoff Live
         </Link>
         <span className="tagline">Matches &amp; streams, no ads</span>
+        <nav className="nav" aria-label="Sections">
+          <NavLink to="/" end className={navClass}>
+            Matches
+          </NavLink>
+          <NavLink to="/tv" className={navClass}>
+            TV channels
+          </NavLink>
+        </nav>
       </header>
       <main className="container">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/watch/:id" element={<Watch />} />
+          <Route path="/tv" element={<Channels />} />
+          <Route path="/tv/:id" element={<ChannelWatch />} />
           <Route
             path="*"
             element={

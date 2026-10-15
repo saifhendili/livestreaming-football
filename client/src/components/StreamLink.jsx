@@ -32,6 +32,16 @@ export default function StreamLink({ server }) {
         </a>
       </div>
       {server.type === 'hls' && <p className="hint">Paste this into VLC (Media → Open Network Stream) or mpv to watch outside the browser.</p>}
+      {server.referrer && (
+        <p className="hint" dir="ltr">
+          This stream also needs the HTTP referrer <code>{server.referrer}</code> (VLC: <code>--http-referrer</code>, mpv: <code>--referrer</code>).
+        </p>
+      )}
+      {server.userAgent && (
+        <p className="hint" dir="ltr">
+          This stream also needs the user agent <code>{server.userAgent}</code> (VLC: <code>--http-user-agent</code>, mpv: <code>--user-agent</code>).
+        </p>
+      )}
     </div>
   );
 }

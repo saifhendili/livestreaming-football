@@ -37,6 +37,12 @@ Before showing a server, the API checks that each HLS stream is online and wheth
 
 Each stream's link is shown under the player with a copy button.
 
+## TV channels
+
+The **TV channels** tab (`/tv`) lists about 10,000 live channels from the open [iptv-org](https://github.com/iptv-org/api) catalogue, with search and country and category filters. Closed channels and adult channels are left out.
+
+The server downloads the catalogue once (at startup, then every 6 hours) and keeps it in memory, so this part needs no database. When you open a channel, the server checks which of its streams are live right now and which a browser can play, using the same checks as the match streams. Streams that need a special referrer or user agent, or that are plain `http://` on an HTTPS site, are shown as links for VLC or mpv instead.
+
 ## API
 
 | Endpoint | Description |
@@ -44,6 +50,10 @@ Each stream's link is shown under the player with a copy button.
 | `GET /api/matches?day=today\|yesterday\|tomorrow\|all&status=live\|upcoming\|finished&q=` | Match list. Re-scrapes the source if the data is older than 60s. |
 | `GET /api/matches/:id` | One match. |
 | `GET /api/matches/:id/streams[?refresh=1]` | Stream servers for a match, resolved on demand and cached for 2 minutes. |
+| `GET /api/iptv/filters` | Countries and categories (with channel counts) for the TV channels filters. |
+| `GET /api/iptv/channels?country=US&category=news&q=&page=1&limit=48` | Channels, alphabetical, paginated (max 100 per page). |
+| `GET /api/iptv/channels/:id` | One channel. |
+| `GET /api/iptv/channels/:id/streams[?refresh=1]` | Live stream servers for a channel, checked on demand and cached for 2 minutes. |
 
 ## Layout
 
@@ -53,11 +63,15 @@ server/src/
   services/streams.js   finds the real stream URLs behind a match
   services/matches.js   scrape + MongoDB upsert + caching
   services/http.js      fetch with SSRF protection and manifest probing
+  services/iptvIndex.js builds and searches the TV channel catalogue (pure, tested)
+  services/iptv.js      downloads the catalogue, checks a channel's streams
   routes/ models/ app.js index.js
 server/test/            fixtures taken from the real pages + node:test suites
 client/src/
   pages/Home.jsx        day tabs, status chips, search, grouped by league
   pages/Watch.jsx       server picker, auto-fallback, stream link
+  pages/Channels.jsx    TV channel browser: search, filters, pages
+  pages/ChannelWatch.jsx  plays a TV channel, same server picker
   components/           HlsPlayer, MatchCard, StreamLink
 ```
 

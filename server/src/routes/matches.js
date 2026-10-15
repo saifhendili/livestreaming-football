@@ -6,7 +6,7 @@ export const matchesRouter = Router();
 
 const STATUSES = ['live', 'finished', 'upcoming'];
 
-function badRequest(message) {
+export function badRequest(message) {
   return Object.assign(new Error(message), { status: 400 });
 }
 

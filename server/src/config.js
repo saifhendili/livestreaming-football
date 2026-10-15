@@ -22,6 +22,10 @@ export const config = {
   streamTtlMs: num(process.env.STREAM_TTL_SECONDS, 120) * 1000,
   emptyStreamTtlMs: num(process.env.EMPTY_STREAM_TTL_SECONDS, 20) * 1000,
   requestTimeoutMs: num(process.env.REQUEST_TIMEOUT_MS, 8000),
+  // Open channel and stream catalogue behind the TV channels section (https://github.com/iptv-org/api).
+  iptvApiUrl: (process.env.IPTV_API_URL || 'https://iptv-org.github.io/api').replace(/\/+$/, ''),
+  // How long the downloaded catalogue is reused before it is fetched again.
+  iptvTtlMs: num(process.env.IPTV_TTL_HOURS, 6) * 60 * 60 * 1000,
   userAgent:
     process.env.USER_AGENT ||
     'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',

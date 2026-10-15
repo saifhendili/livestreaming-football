@@ -95,13 +95,16 @@ const PROBE_ORIGIN = 'https://app.example';
 /**
  * Is this URL a live HLS manifest, and could a web page on another origin load it?
  * Reads only the first chunk of the body.
+ * A stream that needs a specific `referer` or `userAgent` is probed with them, but is never
+ * reported as browser-playable because a web page can't send those headers.
  */
-export async function probeManifest(rawUrl, { timeoutMs = 4000 } = {}) {
+export async function probeManifest(rawUrl, { timeoutMs = 4000, referer, userAgent } = {}) {
+  const customHeaders = Boolean(referer || userAgent);
   try {
     const { res } = await request(rawUrl, {
       timeoutMs,
-      referer: `${PROBE_ORIGIN}/`,
-      headers: { origin: PROBE_ORIGIN },
+      referer: referer || `${PROBE_ORIGIN}/`,
+      headers: { origin: PROBE_ORIGIN, ...(userAgent ? { 'user-agent': userAgent } : {}) },
     });
     if (!res.ok || !res.body) {
       await res.body?.cancel();
@@ -114,7 +117,7 @@ export async function probeManifest(rawUrl, { timeoutMs = 4000 } = {}) {
     const allowOrigin = res.headers.get('access-control-allow-origin');
     return {
       ok: new TextDecoder().decode(value ?? new Uint8Array()).trimStart().startsWith('#EXTM3U'),
-      browserPlayable: allowOrigin === '*' || allowOrigin === PROBE_ORIGIN,
+      browserPlayable: !customHeaders && (allowOrigin === '*' || allowOrigin === PROBE_ORIGIN),
     };
   } catch {
     return { ok: false, browserPlayable: false };

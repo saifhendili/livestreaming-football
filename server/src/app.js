@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import cors from 'cors';
 import express from 'express';
 import { config } from './config.js';
+import { iptvRouter } from './routes/iptv.js';
 import { matchesRouter } from './routes/matches.js';
 
 const clientDist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/dist');
@@ -15,6 +16,7 @@ export function createApp() {
 
   app.get('/api/health', (_req, res) => res.json({ ok: true }));
   app.use('/api/matches', matchesRouter);
+  app.use('/api/iptv', iptvRouter);
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));
 
   // In production the built React app is served from here too.
