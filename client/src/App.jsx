@@ -1,4 +1,6 @@
 import { Link, NavLink, Route, Routes } from 'react-router-dom';
+import InstallBanner from './components/InstallBanner.jsx';
+import OfflineBanner from './components/OfflineBanner.jsx';
 import ChannelWatch from './pages/ChannelWatch.jsx';
 import Channels from './pages/Channels.jsx';
 import Home from './pages/Home.jsx';
@@ -25,6 +27,8 @@ export default function App() {
           </NavLink>
         </nav>
       </header>
+      <OfflineBanner />
+      <InstallBanner />
       <main className="container">
         <Routes>
           <Route path="/" element={<Home />} />

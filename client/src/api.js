@@ -2,7 +2,14 @@
 const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 async function get(path, signal) {
-  const res = await fetch(`${API_BASE}/api${path}`, { signal });
+  let res;
+  try {
+    res = await fetch(`${API_BASE}/api${path}`, { signal });
+  } catch (err) {
+    if (err.name === 'AbortError') throw err;
+    // "Failed to fetch" means nothing to a viewer; the usual cause is a lost connection.
+    throw new Error("Can't reach the server. Check your connection and try again.");
+  }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || `Request failed (${res.status})`);
   return body;

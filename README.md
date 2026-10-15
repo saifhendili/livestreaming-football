@@ -37,6 +37,17 @@ Before showing a server, the API checks that each HLS stream is online and wheth
 
 Each stream's link is shown under the player with a copy button.
 
+## Install it on your phone
+
+Kickoff Live is a progressive web app, so it can be installed and opened full screen from the home screen. Open the deployed site over **HTTPS**:
+
+- **Android (Chrome, Edge):** tap **Install** in the banner at the top of the page, or use the browser menu → *Install app*.
+- **iPhone / iPad (Safari):** tap **Share** → *Add to Home Screen*.
+
+The banner goes away once the app is installed, and stays away for two weeks if you dismiss it. A local `http://192.168…` address can't be installed: browsers only allow it on HTTPS (or `localhost`).
+
+The service worker (`client/public/sw.js`) caches only the app itself, so it opens instantly and shows an "offline" notice without a connection. It never caches live data: the API, match lists, channel lists and video all come from the network. The build fills in the file list and a version for each deploy (`serviceWorker()` in `client/vite.config.js`); installing a new deploy replaces the old cache by itself. The icons are generated from `client/public/icons/icon.svg`.
+
 ## TV channels
 
 The **TV channels** tab (`/tv`) has three collections. Each is its own list with its own data, filters and page (`/tv/world`, `/tv/more`, `/tv/free-tv`), so the same channel can appear in more than one.

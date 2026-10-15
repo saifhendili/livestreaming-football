@@ -615,6 +615,66 @@ button {
   color: var(--text);
 }
 
+/* ---------- app: install and offline ---------- */
+.install-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 1080px;
+  margin: 12px auto 0;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.install-icon {
+  flex: none;
+  border-radius: 10px;
+}
+
+.install-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.install-close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.install-close:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.offline-banner {
+  margin: 0;
+  padding: 8px 16px;
+  background: color-mix(in srgb, var(--warn) 18%, var(--bg));
+  color: #fde68a;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* The banner sits outside .container, so keep it off the screen edges on phones. */
+@media (max-width: 1112px) {
+  .install-banner {
+    margin-inline: 16px;
+  }
+}
+
 /* ---------- tv: collections ---------- */
 .source-tabs {
   display: grid;

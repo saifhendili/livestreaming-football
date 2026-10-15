@@ -1,0 +1,22 @@
+{
+  "id": "/",
+  "name": "Kickoff Live",
+  "short_name": "Kickoff Live",
+  "description": "Today's football matches and live TV channels, in a clean player with no ads.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "categories": ["sports", "entertainment"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Matches", "url": "/" },
+    { "name": "TV channels", "url": "/tv" }
+  ]
+}
