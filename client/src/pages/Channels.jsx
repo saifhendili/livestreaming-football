@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { fetchIptvChannels, fetchIptvFilters } from '../api.js';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { fetchIptvChannels, fetchIptvFilters, fetchIptvSources } from '../api.js';
 import ChannelCard from '../components/ChannelCard.jsx';
+import SourceTabs from '../components/SourceTabs.jsx';
 import { usePoll } from '../usePoll.js';
 
 const SEARCH_DELAY_MS = 300;
+const SKELETON_CARDS = 12;
 
-export default function Channels() {
+function SourcePage({ source }) {
   // Filters and the page live in the URL so they survive opening a channel and coming back.
   const [params, setParams] = useSearchParams();
   const country = params.get('country') ?? '';
@@ -40,7 +42,7 @@ export default function Channels() {
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text]);
-  // The URL changed from somewhere else (e.g. the nav link cleared the filters): follow it.
+  // The URL changed from somewhere else (a removed filter pill, "clear all"): follow it.
   useEffect(() => {
     if (query !== pushedQuery.current) {
       pushedQuery.current = query;
@@ -48,71 +50,113 @@ export default function Channels() {
     }
   }, [query]);
 
-  const filters = usePoll((signal) => fetchIptvFilters(signal), []);
+  const sources = usePoll((signal) => fetchIptvSources(signal), []);
+  const filters = usePoll((signal) => fetchIptvFilters(source, signal), [source]);
   const { data, error, loading } = usePoll(
-    (signal) => fetchIptvChannels({ country, category, q: query, page: page > 1 ? String(page) : '' }, signal),
-    [country, category, query, page],
+    (signal) => fetchIptvChannels(source, { country, category, q: query, page: page > 1 ? String(page) : '' }, signal),
+    [source, country, category, query, page],
   );
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [page]);
 
+  const meta = sources.data?.sources.find((s) => s.id === source);
+  const countries = filters.data?.countries ?? [];
+  const categories = filters.data?.categories ?? [];
   const channels = data?.channels ?? [];
+  const sameKey = (a, b) => a.toLowerCase() === b.toLowerCase();
+  const activeCountry = countries.find((c) => sameKey(c.value, country));
+  const activeCategory = categories.find((c) => sameKey(c.value, category));
+  const hasFilters = Boolean(country || category || query);
+  const clearFilters = () => setParams({}, { replace: true });
 
   return (
     <>
+      <SourceTabs sources={sources.data?.sources} current={source} />
+
+      {meta && (
+        <p className="source-intro">
+          <strong>{meta.tagline}.</strong> <span className="muted">{meta.description}</span>{' '}
+          <a href={meta.homepage} target="_blank" rel="noreferrer noopener">
+            Source ↗
+          </a>
+        </p>
+      )}
+      {filters.error && (
+        <p className="notice notice-error" role="alert">
+          {filters.error} <Link to="/tv">Back to all collections</Link>
+        </p>
+      )}
+
       <div className="toolbar">
         <input
           className="search"
           type="search"
-          placeholder="Search TV channels…"
+          placeholder={meta ? `Search ${meta.label}…` : 'Search channels…'}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          aria-label="Search TV channels"
+          aria-label="Search channels"
         />
-        <div className="selects">
-          <select className="select" value={country} onChange={(e) => update({ country: e.target.value })} aria-label="Country">
+        {countries.length > 0 && (
+          <select className="select" value={activeCountry?.value ?? ''} onChange={(e) => update({ country: e.target.value })} aria-label="Country">
             <option value="">All countries</option>
-            {filters.data?.countries.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.flag} {c.name} ({c.count})
+            {countries.map((c) => (
+              <option key={c.value} value={c.value}>
+                {`${c.flag ?? ''} ${c.label}`.trim()} ({c.count})
               </option>
             ))}
           </select>
-          <select className="select" value={category} onChange={(e) => update({ category: e.target.value })} aria-label="Category">
-            <option value="">All categories</option>
-            {filters.data?.categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} ({c.count})
-              </option>
-            ))}
-          </select>
-        </div>
+        )}
       </div>
 
-      {error && (
+      {categories.length > 0 && (
+        <div className="chips chips-scroll" role="group" aria-label="Category">
+          <button className={`chip ${!category ? 'chip-active' : ''}`} onClick={() => update({ category: '' })}>
+            All
+          </button>
+          {categories.map((c) => (
+            <button
+              key={c.value}
+              className={`chip ${activeCategory?.value === c.value ? 'chip-active' : ''}`}
+              onClick={() => update({ category: c.value })}
+            >
+              {c.label} <span className="chip-count">{c.count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {error && !filters.error && (
         <p className="notice notice-error" role="alert">
           {error}
         </p>
       )}
-      {loading && <p className="muted">Loading channels…</p>}
       {data && (
         <p className="muted results-count">
           {data.total.toLocaleString()} {data.total === 1 ? 'channel' : 'channels'}
+          {hasFilters && (
+            <>
+              {' · '}
+              <button className="linklike" onClick={clearFilters}>
+                Clear filters
+              </button>
+            </>
+          )}
         </p>
       )}
       {!loading && !error && channels.length === 0 && <p className="muted">No channels match.</p>}
 
-      <div className="grid grid-channels">
+      <div className="grid grid-channels" aria-busy={loading}>
+        {loading && !data && Array.from({ length: SKELETON_CARDS }, (_, i) => <div key={i} className="card channel-card skeleton" aria-hidden="true" />)}
         {channels.map((channel) => (
-          <ChannelCard key={channel.id} channel={channel} />
+          <ChannelCard key={channel.id} channel={channel} source={source} />
         ))}
       </div>
 
       {data && data.pages > 1 && (
         <nav className="pager" aria-label="Pages">
-          <button className="btn btn-ghost" disabled={data.page <= 1} onClick={() => update({ page: String(data.page - 1) === '1' ? '' : String(data.page - 1) })}>
+          <button className="btn btn-ghost" disabled={data.page <= 1} onClick={() => update({ page: data.page - 1 > 1 ? String(data.page - 1) : '' })}>
             ← Previous
           </button>
           <span className="muted">
@@ -125,4 +169,10 @@ export default function Channels() {
       )}
     </>
   );
+}
+
+// Keyed by source so switching collections starts with clean search text and filters.
+export default function Channels() {
+  const { source } = useParams();
+  return <SourcePage key={source} source={source} />;
 }

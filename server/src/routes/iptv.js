@@ -1,11 +1,10 @@
 import { Router } from 'express';
-import { getChannel, getFilters, getStreams, listChannels } from '../services/iptv.js';
+import { getChannel, getFilters, getSources, getStreams, isSource, listChannels } from '../services/iptv.js';
 import { badRequest } from './matches.js';
 
 export const iptvRouter = Router();
 
-const COUNTRY = /^[A-Za-z]{2}$/;
-const CATEGORY = /^[a-z0-9-]{1,30}$/;
+const FACET = /^[\p{L}\p{N}_.-]{1,60}$/u;
 const CHANNEL_ID = /^[\w.@-]{1,120}$/;
 
 const channelId = (id) => {
@@ -13,17 +12,26 @@ const channelId = (id) => {
   return id;
 };
 
-iptvRouter.get('/filters', async (_req, res) => {
-  res.json(await getFilters());
+iptvRouter.get('/sources', async (_req, res) => {
+  res.json({ sources: await getSources() });
 });
 
-iptvRouter.get('/channels', async (req, res) => {
+// Everything below lives under /api/iptv/:source/…
+iptvRouter.param('source', (_req, _res, next, id) =>
+  isSource(id) ? next() : next(Object.assign(new Error('Unknown source'), { status: 404 })),
+);
+
+iptvRouter.get('/:source/filters', async (req, res) => {
+  res.json(await getFilters(req.params.source));
+});
+
+iptvRouter.get('/:source/channels', async (req, res) => {
   const { country, category, q, page, limit } = req.query;
-  if (country && !COUNTRY.test(country)) throw badRequest('country must be a 2-letter code');
-  if (category && !CATEGORY.test(category)) throw badRequest('Invalid category');
+  if (country && !FACET.test(country)) throw badRequest('Invalid country');
+  if (category && !FACET.test(category)) throw badRequest('Invalid category');
 
   res.json(
-    await listChannels({
+    await listChannels(req.params.source, {
       country: country || undefined,
       category: category || undefined,
       q: typeof q === 'string' ? q.trim().slice(0, 60) : undefined,
@@ -33,14 +41,14 @@ iptvRouter.get('/channels', async (req, res) => {
   );
 });
 
-iptvRouter.get('/channels/:id', async (req, res) => {
-  const channel = await getChannel(channelId(req.params.id));
+iptvRouter.get('/:source/channels/:id', async (req, res) => {
+  const channel = await getChannel(req.params.source, channelId(req.params.id));
   if (!channel) return res.status(404).json({ error: 'Channel not found' });
   res.json(channel);
 });
 
-iptvRouter.get('/channels/:id/streams', async (req, res) => {
-  const streams = await getStreams(channelId(req.params.id), { force: req.query.refresh === '1' });
+iptvRouter.get('/:source/channels/:id/streams', async (req, res) => {
+  const streams = await getStreams(req.params.source, channelId(req.params.id), { force: req.query.refresh === '1' });
   if (!streams) return res.status(404).json({ error: 'Channel not found' });
   res.json(streams);
 });

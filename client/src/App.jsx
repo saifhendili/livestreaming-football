@@ -2,6 +2,7 @@ import { Link, NavLink, Route, Routes } from 'react-router-dom';
 import ChannelWatch from './pages/ChannelWatch.jsx';
 import Channels from './pages/Channels.jsx';
 import Home from './pages/Home.jsx';
+import TvHub from './pages/TvHub.jsx';
 import Watch from './pages/Watch.jsx';
 
 const navClass = ({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`;
@@ -28,8 +29,9 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/watch/:id" element={<Watch />} />
-          <Route path="/tv" element={<Channels />} />
-          <Route path="/tv/:id" element={<ChannelWatch />} />
+          <Route path="/tv" element={<TvHub />} />
+          <Route path="/tv/:source" element={<Channels />} />
+          <Route path="/tv/:source/:id" element={<ChannelWatch />} />
           <Route
             path="*"
             element={

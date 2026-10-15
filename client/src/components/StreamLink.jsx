@@ -17,7 +17,8 @@ export default function StreamLink({ server }) {
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const label = server.type === 'embed' ? 'Player page' : `Stream link (${server.type.toUpperCase()})`;
+  const labels = { embed: 'Player page', page: 'Channel page' };
+  const label = labels[server.type] ?? `Stream link (${server.type.toUpperCase()})`;
 
   return (
     <div className="linkbox">

@@ -615,11 +615,261 @@ button {
   color: var(--text);
 }
 
-/* ---------- tv channels ---------- */
-.selects {
+/* ---------- tv: collections ---------- */
+.source-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.source-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+
+.source-tab:hover {
+  border-color: var(--muted);
+}
+
+.source-tab-active,
+.source-tab-active:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+}
+
+.source-tab-label {
+  font-weight: 700;
+}
+
+.source-tab-count {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.source-tab-active .source-tab-count {
+  color: var(--accent);
+}
+
+.source-tab.skeleton {
+  height: 58px;
+}
+
+.source-intro {
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+}
+
+.source-intro a {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.skeleton {
+  border-color: transparent;
+  background: linear-gradient(100deg, var(--surface) 30%, var(--surface-2) 50%, var(--surface) 70%);
+  background-size: 300% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -150% 0;
+  }
+}
+
+/* ---------- tv: hub ---------- */
+.hub-title {
+  margin: 0 0 6px;
+  font-size: 1.6rem;
+}
+
+.hub-intro {
+  margin: 0 0 20px;
+  max-width: 62ch;
+}
+
+.hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.hub-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px;
+}
+
+.hub-card-off {
+  opacity: 0.6;
+}
+
+.hub-card-off:hover {
+  border-color: var(--border);
+  transform: none;
+}
+
+.hub-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hub-name {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.hub-count {
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.hub-tagline {
+  margin: 0;
+  font-weight: 600;
+}
+
+.hub-desc {
+  flex: 1;
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.hub-preview {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
+  margin: 4px 0;
+}
+
+.hub-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.hub-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.hub-cta {
+  color: var(--accent);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.hub-skeleton {
+  height: 290px;
+}
+
+/* ---------- tv: browsing ---------- */
+.chips-scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+
+.chips-scroll .chip {
+  flex: none;
+}
+
+/* Wide screens have room to show every category at once. */
+@media (min-width: 700px) {
+  .chips-scroll {
+    flex-wrap: wrap;
+    overflow: visible;
+    padding-bottom: 0;
+  }
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.82rem;
+}
+
+.linklike {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: inherit;
+  text-decoration: underline;
+}
+
+.channel-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.channel-badges .badge {
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.badge-hd {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.badge-note {
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+}
+
+.badge-link {
+  color: #93c5fd;
+  background: color-mix(in srgb, #3b82f6 16%, transparent);
+}
+
+.source-badge {
+  display: inline-block;
+  padding: 1px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.source-badge:hover {
+  border-color: var(--accent);
 }
 
 .select {
@@ -651,20 +901,27 @@ button {
 }
 
 .channel-logo {
+  display: grid;
   flex: none;
-  object-fit: contain;
+  place-items: center;
   padding: 4px;
+  overflow: hidden;
   border-radius: 10px;
   /* Most channel logos are drawn for a light background. */
   background: #f4f6fb;
 }
 
+.channel-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  /* A thin dark edge keeps white-on-transparent logos (BBC Radio, for example) visible on the light tile. */
+  filter: drop-shadow(0 0 0.6px rgba(0, 0, 0, 0.7));
+}
+
 .channel-logo-fallback {
-  display: grid;
-  place-items: center;
-  font-weight: 800;
   font-size: 1.3rem;
-  color: #3b4663;
+  font-weight: 800;
 }
 
 .channel-info {
@@ -683,7 +940,6 @@ button {
 .channel-meta {
   color: var(--muted);
   font-size: 0.8rem;
-  text-transform: capitalize;
 }
 
 .pager {
@@ -714,11 +970,6 @@ button {
 .channel-sub {
   margin: 4px 0 0;
   font-size: 0.9rem;
-  text-transform: capitalize;
-}
-
-.channel-sub a {
-  text-transform: none;
 }
 
 .server-quality {
@@ -755,7 +1006,8 @@ button {
 
 @media (prefers-reduced-motion: reduce) {
   .pulse,
-  .spinner {
+  .spinner,
+  .skeleton {
     animation: none;
   }
 }

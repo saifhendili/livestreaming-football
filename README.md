@@ -39,9 +39,17 @@ Each stream's link is shown under the player with a copy button.
 
 ## TV channels
 
-The **TV channels** tab (`/tv`) lists about 10,000 live channels from the open [iptv-org](https://github.com/iptv-org/api) catalogue, with search and country and category filters. Closed channels and adult channels are left out.
+The **TV channels** tab (`/tv`) has three collections. Each is its own list with its own data, filters and page (`/tv/world`, `/tv/more`, `/tv/free-tv`), so the same channel can appear in more than one.
 
-The server downloads the catalogue once (at startup, then every 6 hours) and keeps it in memory, so this part needs no database. When you open a channel, the server checks which of its streams are live right now and which a browser can play, using the same checks as the match streams. Streams that need a special referrer or user agent, or that are plain `http://` on an HTTPS site, are shown as links for VLC or mpv instead.
+| Collection | Where it comes from | What it has |
+|---|---|---|
+| **Worldwide** (`world`) | The channel entries of the open [iptv-org](https://github.com/iptv-org/iptv) catalogue | About 10,000 channels with logos, filtered by country and category. Closed and adult channels are left out. |
+| **More channels** (`more`) | iptv-org streams that belong to no channel entry | About 1,500 titles, mostly free streaming-service channels. Search only: they have no country, category or logo. Streams of the same title are merged. |
+| **Free-TV** (`free-tv`) | The [Free-TV/IPTV](https://github.com/Free-TV/IPTV) playlist | About 1,800 hand-picked free channels, filtered by country or topic. Video-on-demand groups are left out. Its YouTube and Twitch entries open on their own site. |
+
+The server downloads each list at startup and again every 6 hours, and keeps them in memory, so this part needs no database. When you open a channel, the server checks which of its streams are live right now and which a browser can play, using the same checks as the match streams. Streams that need a special referrer or user agent, or that are plain `http://` on an HTTPS site, are shown as links for VLC or mpv instead. Labels such as "Geo-blocked", "Not 24/7" and "SD" come from the lists themselves.
+
+To add another collection, write a mapper in `server/src/services/iptvSources.js` that returns `makeIndex(...)`, and register its loader in `iptv.js`. The pages pick it up on their own.
 
 ## API
 
@@ -50,10 +58,11 @@ The server downloads the catalogue once (at startup, then every 6 hours) and kee
 | `GET /api/matches?day=today\|yesterday\|tomorrow\|all&status=live\|upcoming\|finished&q=` | Match list. Re-scrapes the source if the data is older than 60s. |
 | `GET /api/matches/:id` | One match. |
 | `GET /api/matches/:id/streams[?refresh=1]` | Stream servers for a match, resolved on demand and cached for 2 minutes. |
-| `GET /api/iptv/filters` | Countries and categories (with channel counts) for the TV channels filters. |
-| `GET /api/iptv/channels?country=US&category=news&q=&page=1&limit=48` | Channels, alphabetical, paginated (max 100 per page). |
-| `GET /api/iptv/channels/:id` | One channel. |
-| `GET /api/iptv/channels/:id/streams[?refresh=1]` | Live stream servers for a channel, checked on demand and cached for 2 minutes. |
+| `GET /api/iptv/sources` | The TV collections with their sizes and a small preview. |
+| `GET /api/iptv/:source/filters` | Countries and categories (with channel counts) of one collection. Empty lists mean the collection has none. |
+| `GET /api/iptv/:source/channels?country=&category=&q=&page=1&limit=48` | Channels, alphabetical, paginated (max 100 per page). `:source` is `world`, `more` or `free-tv`. |
+| `GET /api/iptv/:source/channels/:id` | One channel. |
+| `GET /api/iptv/:source/channels/:id/streams[?refresh=1]` | Live stream servers for a channel, checked on demand and cached for 2 minutes. |
 
 ## Layout
 
@@ -63,14 +72,16 @@ server/src/
   services/streams.js   finds the real stream URLs behind a match
   services/matches.js   scrape + MongoDB upsert + caching
   services/http.js      fetch with SSRF protection and manifest probing
-  services/iptvIndex.js builds and searches the TV channel catalogue (pure, tested)
-  services/iptv.js      downloads the catalogue, checks a channel's streams
+  services/iptvIndex.js generic TV catalogue: index, search, stream picking (pure, tested)
+  services/iptvSources.js one mapper per collection: world, more, free-tv (pure, tested)
+  services/iptv.js      downloads each collection, checks a channel's streams
   routes/ models/ app.js index.js
 server/test/            fixtures taken from the real pages + node:test suites
 client/src/
   pages/Home.jsx        day tabs, status chips, search, grouped by league
   pages/Watch.jsx       server picker, auto-fallback, stream link
-  pages/Channels.jsx    TV channel browser: search, filters, pages
+  pages/TvHub.jsx       the three TV collections, side by side
+  pages/Channels.jsx    browse one collection: search, filters, pages
   pages/ChannelWatch.jsx  plays a TV channel, same server picker
   components/           HlsPlayer, MatchCard, StreamLink
 ```

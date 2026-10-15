@@ -15,11 +15,21 @@ const queryString = (params) => {
   return text ? `?${text}` : '';
 };
 
-export const fetchIptvFilters = (signal) => get('/iptv/filters', signal);
-export const fetchIptvChannels = (params, signal) => get(`/iptv/channels${queryString(params)}`, signal);
-export const fetchIptvChannel = (id, signal) => get(`/iptv/channels/${encodeURIComponent(id)}`, signal);
-export const fetchIptvStreams = (id, { refresh = false, signal } = {}) =>
-  get(`/iptv/channels/${encodeURIComponent(id)}/streams${refresh ? '?refresh=1' : ''}`, signal);
+const tv = (source) => `/iptv/${encodeURIComponent(source)}`;
+
+// The list of collections barely changes, so keep it for the visit once every collection has loaded.
+let sourcesCache = null;
+export async function fetchIptvSources(signal) {
+  if (sourcesCache) return sourcesCache;
+  const data = await get('/iptv/sources', signal);
+  if (data.sources.every((s) => s.available)) sourcesCache = data;
+  return data;
+}
+export const fetchIptvFilters = (source, signal) => get(`${tv(source)}/filters`, signal);
+export const fetchIptvChannels = (source, params, signal) => get(`${tv(source)}/channels${queryString(params)}`, signal);
+export const fetchIptvChannel = (source, id, signal) => get(`${tv(source)}/channels/${encodeURIComponent(id)}`, signal);
+export const fetchIptvStreams = (source, id, { refresh = false, signal } = {}) =>
+  get(`${tv(source)}/channels/${encodeURIComponent(id)}/streams${refresh ? '?refresh=1' : ''}`, signal);
 
 export const fetchMatches = (day, signal) => get(`/matches?day=${day}`, signal);
 export const fetchMatch = (id, signal) => get(`/matches/${id}`, signal);

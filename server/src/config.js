@@ -24,7 +24,9 @@ export const config = {
   requestTimeoutMs: num(process.env.REQUEST_TIMEOUT_MS, 8000),
   // Open channel and stream catalogue behind the TV channels section (https://github.com/iptv-org/api).
   iptvApiUrl: (process.env.IPTV_API_URL || 'https://iptv-org.github.io/api').replace(/\/+$/, ''),
-  // How long the downloaded catalogue is reused before it is fetched again.
+  // The Free-TV playlist (https://github.com/Free-TV/IPTV), another source in the TV channels section.
+  freeTvUrl: process.env.FREETV_URL || 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8',
+  // How long a downloaded catalogue is reused before it is fetched again.
   iptvTtlMs: num(process.env.IPTV_TTL_HOURS, 6) * 60 * 60 * 1000,
   userAgent:
     process.env.USER_AGENT ||

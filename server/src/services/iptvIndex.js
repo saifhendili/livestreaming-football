@@ -1,96 +1,114 @@
-// Pure helpers for the iptv-org dataset (https://github.com/iptv-org/api). No network access here.
+// Source-independent helpers for a TV channel catalogue. No network access here.
+// Each source (see iptvSources.js) maps its own data into the channel shape below:
+//   { id, name, altNames?, logo?, website?, country?: {value,label,flag}, categories?: [{value,label}], streams: [stream] }
+// and makeStream() builds the stream entries.
 
-const MAX_STREAMS_PER_CHANNEL = 8;
+const MAX_PROBED_PER_CHANNEL = 8;
+const MAX_PAGE_LINKS = 2;
 // hls.js only plays HLS. These formats can never work in the player, so don't offer them.
 const UNPLAYABLE_PATH = /\.(mpd|flv|mp4|ts|m4s|webm)$/i;
+// Channel pages on these sites can't be embedded, but they are still worth a link.
+const PAGE_PROVIDERS = [
+  { provider: 'youtube', host: /(^|\.)(youtube\.com|youtu\.be)$/ },
+  { provider: 'twitch', host: /(^|\.)twitch\.tv$/ },
+];
 
 const stripAccents = (text) => text.normalize('NFD').replace(/\p{M}/gu, '');
 export const normalize = (text) => stripAccents(String(text ?? '')).toLowerCase().trim();
+export const slug = (text) => normalize(text).replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
 
-/** Is this stream entry something we could try to play as HLS over http(s)? */
-export function isHlsCandidate(stream) {
+/**
+ * What kind of stream is this URL?
+ * 'hls' can be checked and played, 'page' is a channel page on YouTube or Twitch, null is unusable here.
+ */
+export function classifyUrl(rawUrl) {
   let url;
   try {
-    url = new URL(stream.url);
+    url = new URL(rawUrl);
   } catch {
-    return false;
+    return null;
   }
-  return (url.protocol === 'http:' || url.protocol === 'https:') && !UNPLAYABLE_PATH.test(url.pathname);
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+  const page = PAGE_PROVIDERS.find((p) => p.host.test(url.hostname));
+  if (page) return { type: 'page', provider: page.provider };
+  return UNPLAYABLE_PATH.test(url.pathname) ? null : { type: 'hls', provider: null };
 }
 
 /** "1080p" -> 1080, "576i" -> 576, missing -> 0. */
 export const qualityHeight = (quality) => Number.parseInt(quality ?? '', 10) || 0;
 
-function toStream(stream) {
+/** A stream entry, or null when the URL is something we can't use. */
+export function makeStream({ url, title, quality, labels, referrer, userAgent }) {
+  const kind = classifyUrl(url);
+  if (!kind) return null;
   return {
-    url: stream.url,
-    title: stream.title || null,
-    quality: stream.quality || null,
-    secure: stream.url.startsWith('https:'),
+    url,
+    type: kind.type,
+    provider: kind.provider,
+    title: title || null,
+    quality: quality || null,
+    labels: labels ?? [],
+    secure: /^https:/i.test(url),
     // Browsers can't set these two headers, so such streams only work in an external player.
-    referrer: stream.referrer || null,
-    userAgent: stream.user_agent || null,
+    referrer: referrer || null,
+    userAgent: userAgent || null,
   };
 }
 
-/**
- * Join the dataset into one in-memory index of channels that have something to play.
- * Closed and adult channels are left out.
- */
-export function buildIndex({ channels, streams, logos = [], categories = [], countries = [] }) {
-  const streamsByChannel = new Map();
-  for (const stream of streams) {
-    if (!stream.channel || !isHlsCandidate(stream)) continue;
-    if (!streamsByChannel.has(stream.channel)) streamsByChannel.set(stream.channel, []);
-    streamsByChannel.get(stream.channel).push(toStream(stream));
-  }
+const byName = (a, b) => a.name.localeCompare(b.name);
 
-  // First logo wins, preferring the channel's main logo over regional feeds.
-  const logoByChannel = new Map();
-  for (const logo of logos) {
-    if (!logo.url?.startsWith('https:')) continue;
-    if (!logoByChannel.has(logo.channel) || (!logo.feed && logoByChannel.get(logo.channel).feed)) {
-      logoByChannel.set(logo.channel, { url: logo.url, feed: logo.feed });
-    }
-  }
-
-  const list = [];
-  for (const channel of channels) {
-    const sources = streamsByChannel.get(channel.id);
-    if (!sources?.length || channel.closed || channel.is_nsfw) continue;
-    list.push({
-      id: channel.id,
-      name: channel.name,
-      logo: logoByChannel.get(channel.id)?.url ?? null,
-      country: channel.country || null,
-      categories: channel.categories ?? [],
+/** Turn mapped channels into a searchable in-memory index. Channels without a stream are dropped. */
+export function makeIndex(channels) {
+  const list = channels
+    .filter((channel) => channel.streams.length)
+    .map((channel) => ({
+      ...channel,
+      logo: channel.logo ?? null,
       website: channel.website ?? null,
-      sources: sources.length,
-      streams: sources,
-      search: normalize([channel.name, ...(channel.alt_names ?? [])].join(' ')),
-    });
-  }
-  list.sort((a, b) => a.name.localeCompare(b.name));
+      country: channel.country ?? null,
+      categories: channel.categories ?? [],
+      search: normalize([channel.name, ...(channel.altNames ?? [])].join(' ')),
+      countryKey: channel.country ? normalize(channel.country.value) : null,
+      categoryKeys: (channel.categories ?? []).map((c) => normalize(c.value)),
+    }))
+    .sort(byName);
 
-  const countCategory = new Map();
-  const countCountry = new Map();
+  const countries = new Map();
+  const categories = new Map();
   for (const channel of list) {
-    for (const id of channel.categories) countCategory.set(id, (countCategory.get(id) ?? 0) + 1);
-    if (channel.country) countCountry.set(channel.country, (countCountry.get(channel.country) ?? 0) + 1);
+    if (channel.country) {
+      const entry = countries.get(channel.country.value) ?? { ...channel.country, count: 0 };
+      entry.count += 1;
+      countries.set(channel.country.value, entry);
+    }
+    for (const category of channel.categories) {
+      const entry = categories.get(category.value) ?? { ...category, count: 0 };
+      entry.count += 1;
+      categories.set(category.value, entry);
+    }
   }
 
   return {
     channels: list,
     byId: new Map(list.map((channel) => [channel.id, channel])),
-    categories: categories
-      .filter((c) => countCategory.has(c.id))
-      .map((c) => ({ id: c.id, name: c.name, count: countCategory.get(c.id) }))
-      .sort((a, b) => a.name.localeCompare(b.name)),
-    countries: countries
-      .filter((c) => countCountry.has(c.code))
-      .map((c) => ({ code: c.code, name: c.name, flag: c.flag, count: countCountry.get(c.code) }))
-      .sort((a, b) => a.name.localeCompare(b.name)),
+    countries: [...countries.values()].sort((a, b) => a.label.localeCompare(b.label)),
+    // Biggest first: the most useful shortcuts come first.
+    categories: [...categories.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)),
   };
+}
+
+/** The best quality any stream of the channel offers, e.g. "1080p". */
+function bestQuality(streams) {
+  let best = null;
+  for (const stream of streams) {
+    if (qualityHeight(stream.quality) > qualityHeight(best)) best = stream.quality;
+  }
+  return best;
+}
+
+/** Labels that apply to every stream of the channel, so a badge never overpromises. */
+function commonLabels(streams) {
+  return streams.reduce((common, stream) => common.filter((label) => stream.labels.includes(label)), streams[0]?.labels ?? []);
 }
 
 export const toChannelDto = (channel) => ({
@@ -100,15 +118,25 @@ export const toChannelDto = (channel) => ({
   country: channel.country,
   categories: channel.categories,
   website: channel.website,
-  sources: channel.sources,
+  sources: channel.streams.length,
+  quality: bestQuality(channel.streams),
+  labels: commonLabels(channel.streams),
+  // Set when the channel can only be opened on another site (YouTube, Twitch).
+  platform: channel.streams.every((s) => s.type === 'page') ? (channel.streams[0].provider ?? null) : null,
 });
 
 /** Filter, search and paginate. `q` matches names (and alternative names) ignoring case and accents. */
 export function queryChannels(index, { country, category, q, page = 1, limit = 48 } = {}) {
   const needle = normalize(q);
   let matches = index.channels;
-  if (country) matches = matches.filter((c) => c.country === country.toUpperCase());
-  if (category) matches = matches.filter((c) => c.categories.includes(category));
+  if (country) {
+    const key = normalize(country);
+    matches = matches.filter((c) => c.countryKey === key);
+  }
+  if (category) {
+    const key = normalize(category);
+    matches = matches.filter((c) => c.categoryKeys.includes(key));
+  }
   if (needle) {
     // Names that start with the search first, the rest keep their alphabetical order.
     const starts = [];
@@ -131,9 +159,27 @@ export function queryChannels(index, { country, category, q, page = 1, limit = 4
   };
 }
 
-/** Best candidates first: higher quality, https before http. Capped so one channel can't flood the probe. */
+/**
+ * Streams to check for a channel: `hls` ones get probed (best first: higher quality, https before http,
+ * capped so one channel can't flood the probe); `pages` are YouTube/Twitch links that are only shown.
+ */
 export function pickCandidates(channel) {
-  return [...channel.streams]
+  const hls = channel.streams
+    .filter((s) => s.type === 'hls')
     .sort((a, b) => qualityHeight(b.quality) - qualityHeight(a.quality) || Number(b.secure) - Number(a.secure))
-    .slice(0, MAX_STREAMS_PER_CHANNEL);
+    .slice(0, MAX_PROBED_PER_CHANNEL);
+  const pages = channel.streams.filter((s) => s.type === 'page').slice(0, MAX_PAGE_LINKS);
+  return { hls, pages };
+}
+
+/** A few channels spread across the list, for a source's preview. Prefers ones that have a logo. */
+export function previewChannels(index, count = 6) {
+  const withLogo = index.channels.filter((c) => c.logo);
+  const pool = withLogo.length >= count ? withLogo : index.channels;
+  const step = Math.max(Math.floor(pool.length / count), 1);
+  const out = [];
+  for (let i = 0; i < count && i * step < pool.length; i++) {
+    out.push({ name: pool[i * step].name, logo: pool[i * step].logo });
+  }
+  return out;
 }
