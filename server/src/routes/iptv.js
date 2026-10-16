@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { getChannel, getFilters, getSources, getStreams, isSource, listChannels } from '../services/iptv.js';
 import { badRequest } from './matches.js';
+import { dramaMedia } from '../services/dramaPlayback.js';
 
 export const iptvRouter = Router();
+iptvRouter.get('/drama/media/:token', dramaMedia);
 
 const FACET = /^[\p{L}\p{N}_.-]{1,60}$/u;
 const CHANNEL_ID = /^[\w.@-]{1,120}$/;

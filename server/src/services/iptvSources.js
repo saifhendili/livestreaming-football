@@ -7,6 +7,14 @@ const shortHash = (text) => createHash('sha1').update(text).digest('hex').slice(
 
 export const SOURCES = [
   {
+    id: 'drama',
+    label: 'Drama Live',
+    categoryFirst: true,
+    tagline: 'Live TV, organized by category',
+    description: 'Explore the complete TV catalogue by country, genre and channel collection. Choose a category or browse all channels.',
+    homepage: 'https://dramalive.app',
+  },
+  {
     id: 'world',
     label: 'Worldwide',
     tagline: 'The biggest open catalogue',

@@ -1,5 +1,7 @@
 // Empty in dev and when the API serves the app itself. Set VITE_API_URL when the API is on another host.
 const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+const apiAsset = (url) => url?.startsWith('/api/') ? new URL(`${API_BASE}${url}`, window.location.origin).href : url;
+const withLogo = (value) => ({ ...value, logo: apiAsset(value.logo) });
 
 async function get(path, signal) {
   let res;
@@ -29,14 +31,30 @@ let sourcesCache = null;
 export async function fetchIptvSources(signal) {
   if (sourcesCache) return sourcesCache;
   const data = await get('/iptv/sources', signal);
+  data.sources = data.sources.map((source) => ({ ...source, preview: source.preview.map(withLogo) }));
   if (data.sources.every((s) => s.available)) sourcesCache = data;
   return data;
 }
-export const fetchIptvFilters = (source, signal) => get(`${tv(source)}/filters`, signal);
-export const fetchIptvChannels = (source, params, signal) => get(`${tv(source)}/channels${queryString(params)}`, signal);
-export const fetchIptvChannel = (source, id, signal) => get(`${tv(source)}/channels/${encodeURIComponent(id)}`, signal);
-export const fetchIptvStreams = (source, id, { refresh = false, signal } = {}) =>
-  get(`${tv(source)}/channels/${encodeURIComponent(id)}/streams${refresh ? '?refresh=1' : ''}`, signal);
+export const fetchIptvFilters = async (source, signal) => {
+  const data = await get(`${tv(source)}/filters`, signal);
+  return { ...data, categories: data.categories.map(withLogo) };
+};
+export const fetchIptvChannels = async (source, params, signal) => {
+  const data = await get(`${tv(source)}/channels${queryString(params)}`, signal);
+  return { ...data, channels: data.channels.map(withLogo) };
+};
+export const fetchIptvChannel = async (source, id, signal) => withLogo(await get(`${tv(source)}/channels/${encodeURIComponent(id)}`, signal));
+export const fetchIptvStreams = async (source, id, { refresh = false, signal } = {}) => {
+  const result = await get(`${tv(source)}/channels/${encodeURIComponent(id)}/streams${refresh ? '?refresh=1' : ''}`, signal);
+  return {
+    ...result,
+    servers: result.servers.map((server) => {
+      if (!server.proxied || !server.url.startsWith('/api/')) return server;
+      const url = new URL(`${API_BASE}${server.url}`, window.location.origin);
+      return { ...server, url: url.href, secure: url.protocol === 'https:' };
+    }),
+  };
+};
 
 export const fetchMatches = (day, signal) => get(`/matches?day=${day}`, signal);
 export const fetchMatch = (id, signal) => get(`/matches/${id}`, signal);

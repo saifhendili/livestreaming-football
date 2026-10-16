@@ -1,4 +1,7 @@
 import { config } from '../config.js';
+import { dramaClient } from './drama.js';
+import { dramaImage, toDramaServers } from './dramaPlayback.js';
+import { dramaCatalog } from './dramaCatalog.js';
 import { fetchText, probeManifest } from './http.js';
 import { pickCandidates, previewChannels, queryChannels, toChannelDto } from './iptvIndex.js';
 import { SOURCES, buildFreeTv, buildMore, buildWorld, parseM3u } from './iptvSources.js';
@@ -52,6 +55,7 @@ const meta = (id) => SOURCES.find((source) => source.id === id);
 
 /** One source's catalogue, downloaded once and refreshed when older than the TTL. */
 export async function getIndex(sourceId) {
+  if (sourceId === 'drama') return dramaCatalog.getAll();
   const state = states.get(sourceId);
   if (state.index && Date.now() - state.loadedAt < config.iptvTtlMs) return state.index;
 
@@ -77,17 +81,22 @@ export async function getIndex(sourceId) {
 }
 
 /** Start every download now so the first visitor doesn't wait. Failures are logged by getIndex. */
-export const preloadAll = () => Promise.allSettled(SOURCES.map((source) => getIndex(source.id)));
+const loadSummary = (source) => source.id === 'drama' ? dramaCatalog.filters() : getIndex(source.id);
+export const preloadAll = () => Promise.allSettled(SOURCES.map(loadSummary));
 
 /** All sources with their sizes and a small preview. A source that can't be loaded is marked unavailable. */
 export async function getSources() {
-  const results = await Promise.allSettled(SOURCES.map((source) => getIndex(source.id)));
+  const results = await Promise.allSettled(SOURCES.map(loadSummary));
   return SOURCES.map((source, i) => {
     const result = results[i];
     if (result.status !== 'fulfilled') {
       return { ...source, available: false, count: 0, countries: 0, categories: 0, preview: [] };
     }
     const index = result.value;
+    if (source.id === 'drama') {
+      return { ...source, available: true, count: index.total, countries: 0, categories: index.categories.length,
+        preview: index.categories.slice(0, 6).map((c) => ({ name: c.label, logo: dramaImage(c.logo) })) };
+    }
     return {
       ...source,
       available: true,
@@ -100,15 +109,27 @@ export async function getSources() {
 }
 
 export async function getFilters(sourceId) {
+  if (sourceId === 'drama') {
+    const filters = await dramaCatalog.filters();
+    return { ...filters, source: meta(sourceId), categories: filters.categories.map((c) => ({ ...c, logo: dramaImage(c.logo) })) };
+  }
   const { countries, categories, channels } = await getIndex(sourceId);
   return { source: meta(sourceId), total: channels.length, countries, categories };
 }
 
 export async function listChannels(sourceId, params) {
+  if (sourceId === 'drama') {
+    const result = await dramaCatalog.list(params);
+    return { ...result, channels: result.channels.map((c) => ({ ...c, logo: dramaImage(c.logo) })) };
+  }
   return queryChannels(await getIndex(sourceId), params);
 }
 
 export async function getChannel(sourceId, id) {
+  if (sourceId === 'drama') {
+    const channel = await dramaCatalog.channel(id);
+    return channel ? { ...channel, logo: dramaImage(channel.logo) } : null;
+  }
   const channel = (await getIndex(sourceId)).byId.get(id);
   return channel ? toChannelDto(channel) : null;
 }
@@ -145,7 +166,7 @@ async function resolveServers(channel) {
  * Working stream servers for a channel. Returns null for an unknown channel. Results are cached briefly.
  */
 export async function getStreams(sourceId, id, { force = false } = {}) {
-  const channel = (await getIndex(sourceId)).byId.get(id);
+  const channel = sourceId === 'drama' ? await dramaCatalog.channel(id) : (await getIndex(sourceId)).byId.get(id);
   if (!channel) return null;
 
   const key = `${sourceId}:${id}`;
@@ -156,7 +177,7 @@ export async function getStreams(sourceId, id, { force = false } = {}) {
   if (!resolving.has(key)) {
     resolving.set(
       key,
-      resolveServers(channel)
+      (sourceId === 'drama' ? dramaClient.resolveChannel(id, { force }).then(toDramaServers) : resolveServers(channel))
         .then((servers) => {
           const entry = { servers, resolvedAt: Date.now() };
           resolved.set(key, entry);

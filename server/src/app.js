@@ -27,7 +27,8 @@ export function createApp() {
 
   // Express 5 forwards rejected async handlers here.
   // eslint-disable-next-line no-unused-vars
-  app.use((err, _req, res, _next) => {
+  app.use((err, _req, res, next) => {
+    if (res.headersSent) return next(err);
     const status = err.status && err.status < 500 ? err.status : 502;
     if (status >= 500) console.error(err);
     res.status(status).json({ error: status >= 500 ? 'Could not reach the source site. Try again shortly.' : err.message });

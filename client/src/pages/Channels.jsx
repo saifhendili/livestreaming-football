@@ -4,6 +4,7 @@ import { fetchIptvChannels, fetchIptvFilters, fetchIptvSources } from '../api.js
 import ChannelCard from '../components/ChannelCard.jsx';
 import SourceTabs from '../components/SourceTabs.jsx';
 import { usePoll } from '../usePoll.js';
+import DramaChannels from './DramaChannels.jsx';
 
 const SEARCH_DELAY_MS = 300;
 const SKELETON_CARDS = 12;
@@ -174,5 +175,6 @@ function SourcePage({ source }) {
 // Keyed by source so switching collections starts with clean search text and filters.
 export default function Channels() {
   const { source } = useParams();
+  if (source === 'drama') return <DramaChannels />;
   return <SourcePage key={source} source={source} />;
 }

@@ -50,15 +50,26 @@ The service worker (`client/public/sw.js`) caches only the app itself, so it ope
 
 ## TV channels
 
-The **TV channels** tab (`/tv`) has three collections. Each is its own list with its own data, filters and page (`/tv/world`, `/tv/more`, `/tv/free-tv`), so the same channel can appear in more than one.
+The **TV channels** tab (`/tv`) has four collections. Each is its own list with its own data, filters and page (`/tv/drama`, `/tv/world`, `/tv/more`, `/tv/free-tv`), so the same channel can appear in more than one.
 
 | Collection | Where it comes from | What it has |
 |---|---|---|
+| **Drama Live** (`drama`) | Drama Live's encrypted channel API | All TV categories from the provider, displayed as category tiles with their original names, order and artwork. Open a tile to browse channels, or choose All channels. |
 | **Worldwide** (`world`) | The channel entries of the open [iptv-org](https://github.com/iptv-org/iptv) catalogue | About 10,000 channels with logos, filtered by country and category. Closed and adult channels are left out. |
 | **More channels** (`more`) | iptv-org streams that belong to no channel entry | About 1,500 titles, mostly free streaming-service channels. Search only: they have no country, category or logo. Streams of the same title are merged. |
 | **Free-TV** (`free-tv`) | The [Free-TV/IPTV](https://github.com/Free-TV/IPTV) playlist | About 1,800 hand-picked free channels, filtered by country or topic. Video-on-demand groups are left out. Its YouTube and Twitch entries open on their own site. |
 
-The server downloads each list at startup and again every 6 hours, and keeps them in memory, so this part needs no database. When you open a channel, the server checks which of its streams are live right now and which a browser can play, using the same checks as the match streams. Streams that need a special referrer or user agent, or that are plain `http://` on an HTTPS site, are shown as links for VLC or mpv instead. Labels such as "Geo-blocked", "Not 24/7" and "SD" come from the lists themselves.
+The server downloads each list at startup and again every 6 hours, and keeps them in memory, so this part needs no database. For Worldwide, More channels and Free-TV, opening a channel checks its streams using the same checks as the match streams. Streams that need a special referrer or user agent, or that are plain `http://` on an HTTPS site, are shown as links for VLC or mpv instead. Labels such as "Geo-blocked", "Not 24/7" and "SD" come from the lists themselves.
+
+Drama Live uses the recovered AES-128-CBC API envelope (`base64(ciphertext):base64(IV)`) on the server. The built-in FG code is `202122`; override it with `DRAMA_FG_CODE` in `server/.env`. No Python helper or imported static playlist is needed.
+
+Opening the collection fetches the category list from `getliveTopics` and preserves its order. Each tile loads only its category when opened; `All channels` loads every category with at most four concurrent requests, deduplicates channels and supports global search and pagination. The category names are discovered dynamically, with no sports-only allowlist. Category lists and channel lists are cached for six hours and concurrent downloads are shared. Empty categories are valid; temporarily failed categories are disclosed in the all-channel results and retried after 30 seconds. Channel deep links load only that channel. Category and channel artwork is relayed through the API with raster-format validation, avoiding mixed-content failures on HTTPS pages. Category counts remain unknown until loaded, rather than displaying a false zero.
+
+When a channel is opened, the API resolves its primary/backup options, including ordinary and JSON double redirects. The HLS adapter forwards the required headers and rewrites variants, segments, keys and maps, applying the app's segment URL substitutions such as removing `k9x_`. Failed playback still uses the existing player fallback and Refresh links controls. Browser-only and DRM recipes are skipped; upstream failures and regional restrictions can still prevent playback.
+
+The media route only accepts encrypted, expiring playback tokens issued by the API; it never accepts an arbitrary URL query parameter. All media and redirect requests use the existing public-address checks. TLS certificate verification stays enabled. Media responses stream through Express without being stored, and the service worker does not cache them. This adds bandwidth usage to the API host. Deploy the Express API on a host that supports streaming responses; the static Vercel client alone cannot serve this feature. With a separately hosted API, set the existing `VITE_API_URL` and `CORS_ORIGIN` values as usual.
+
+For production, set `DRAMA_PROXY_SECRET` to the same private 64-character hex value on every API instance (`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`). Without it, a random per-process key is used for local development and old playback links stop working when the API restarts. Links expire after six hours; Refresh links issues new ones. `DRAMA_LIVE_URL` and `DRAMA_REDIRECT_URL` optionally override the upstream endpoints. The browser receives only API playback URLs, not upstream request headers or the AES API configuration.
 
 To add another collection, write a mapper in `server/src/services/iptvSources.js` that returns `makeIndex(...)`, and register its loader in `iptv.js`. The pages pick it up on their own.
 
@@ -70,10 +81,11 @@ To add another collection, write a mapper in `server/src/services/iptvSources.js
 | `GET /api/matches/:id` | One match. |
 | `GET /api/matches/:id/streams[?refresh=1]` | Stream servers for a match, resolved on demand and cached for 2 minutes. |
 | `GET /api/iptv/sources` | The TV collections with their sizes and a small preview. |
-| `GET /api/iptv/:source/filters` | Countries and categories (with channel counts) of one collection. Empty lists mean the collection has none. |
-| `GET /api/iptv/:source/channels?country=&category=&q=&page=1&limit=48` | Channels, alphabetical, paginated (max 100 per page). `:source` is `world`, `more` or `free-tv`. |
+| `GET /api/iptv/:source/filters` | Countries and categories of one collection. Drama categories preserve source order and include artwork; counts are null until loaded. |
+| `GET /api/iptv/:source/channels?country=&category=&q=&page=1&limit=48` | Channels, alphabetical, paginated (max 100 per page). `:source` is `drama`, `world`, `more` or `free-tv`. |
 | `GET /api/iptv/:source/channels/:id` | One channel. |
 | `GET /api/iptv/:source/channels/:id/streams[?refresh=1]` | Live stream servers for a channel, checked on demand and cached for 2 minutes. |
+| `GET /api/iptv/drama/media/:resource?token=...` | Relay an issued HLS resource or raster artwork through the API. Stable resource paths preserve playback across live playlist refreshes; authorization remains encrypted and expiring. Preserves media byte ranges; expired/invalid tokens return 410. Older token-in-path links are also accepted. |
 
 ## Layout
 
@@ -86,13 +98,17 @@ server/src/
   services/iptvIndex.js generic TV catalogue: index, search, stream picking (pure, tested)
   services/iptvSources.js one mapper per collection: world, more, free-tv (pure, tested)
   services/iptv.js      downloads each collection, checks a channel's streams
+  services/drama.js     AES protocol, dynamic category API and stream recipes
+  services/dramaCatalog.js category caching, all-channel loading and partial-result handling
+  services/dramaPlayback.js encrypted playback tokens and HLS media adapter
   routes/ models/ app.js index.js
 server/test/            fixtures taken from the real pages + node:test suites
 client/src/
   pages/Home.jsx        day tabs, status chips, search, grouped by league
   pages/Watch.jsx       server picker, auto-fallback, stream link
-  pages/TvHub.jsx       the three TV collections, side by side
+  pages/TvHub.jsx       the four TV collections, side by side
   pages/Channels.jsx    browse one collection: search, filters, pages
+  pages/DramaChannels.jsx category tiles, per-category lists and all-channel search
   pages/ChannelWatch.jsx  plays a TV channel, same server picker
   components/           HlsPlayer, MatchCard, StreamLink
 ```
@@ -103,4 +119,4 @@ client/src/
 - **Logos burned into the video** (broadcaster or re-streamer watermarks) are part of the stream and can't be removed.
 - **If the source changes its HTML**, `listing.test.js` and `streams.test.js` are where to look first. The parsers are small and isolated on purpose.
 - Kick-off times are published in Egypt time and shown in your local time.
-- The streams are third-party re-broadcasts of content owned by others. This app doesn't host or store any video; make sure using them is permitted where you live.
+- The streams are third-party re-broadcasts of content owned by others. Drama Live relays video through the API without storing it; make sure using them is permitted where you live.

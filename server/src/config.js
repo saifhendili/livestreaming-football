@@ -28,6 +28,11 @@ export const config = {
   freeTvUrl: process.env.FREETV_URL || 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8',
   // How long a downloaded catalogue is reused before it is fetched again.
   iptvTtlMs: num(process.env.IPTV_TTL_HOURS, 6) * 60 * 60 * 1000,
+  dramaFgCode: process.env.DRAMA_FG_CODE || '202122',
+  dramaLiveUrl: (process.env.DRAMA_LIVE_URL || 'http://live.chiefapisource.pro/api/live/livedrama/v13.0.0').replace(/\/+$/, ''),
+  dramaRedirectUrl: (process.env.DRAMA_REDIRECT_URL || 'http://redirect.chiefapisource.pro/redirect').replace(/\/+$/, ''),
+  // Set the same 64-hex-character secret on every API instance to share playback URLs.
+  dramaProxySecret: process.env.DRAMA_PROXY_SECRET || '',
   userAgent:
     process.env.USER_AGENT ||
     'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',

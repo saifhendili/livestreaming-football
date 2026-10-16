@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { once } from 'node:events';
+import { createApp } from '../src/app.js';
+import { dramaClient } from '../src/services/drama.js';
+
+test('Drama source browses, searches and resolves through the existing Express endpoints', async (t) => {
+  t.mock.method(dramaClient, 'loadTopics', async () => [{ id: 'arabic_sport', label: 'Sports', logo: 'http://logo.example/sports.png' }]);
+  const load = t.mock.method(dramaClient, 'loadTopic', async (topic) => ({ topic, live: [{ id_live: 'sport1', name: 'Sport One' }] }));
+  t.mock.method(dramaClient, 'getDetails', async () => null);
+  t.mock.method(dramaClient, 'resolveChannel', async () => [{ url: 'https://cdn.example/live.m3u8', headers: {}, swaps: {} }]);
+  const app = createApp();
+  const server = app.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(() => { server.closeAllConnections(); return new Promise((resolve) => server.close(resolve)); });
+  const base = `http://127.0.0.1:${server.address().port}/api/iptv/drama`;
+  const filters = await fetch(`${base}/filters`).then((r) => r.json());
+  assert.equal(filters.categories[0].label, 'Sports');
+  assert.ok(filters.categories[0].logo.startsWith('/api/iptv/drama/media/'));
+  assert.equal(load.mock.callCount(), 0);
+  const listing = await fetch(`${base}/channels?q=Sport`).then((r) => r.json());
+  assert.equal(listing.total, 1);
+  assert.equal(listing.channels[0].id, 'sport1');
+  const streams = await fetch(`${base}/channels/sport1/streams`).then((r) => r.json());
+  assert.equal(streams.servers[0].proxied, true);
+  assert.ok(streams.servers[0].url.startsWith('/api/iptv/drama/media/'));
+  assert.equal(streams.servers[0].browserPlayable, true);
+  assert.equal((await fetch(`${base}/channels/missing/streams`)).status, 404);
+  assert.equal((await fetch(`${base}/media/invalid-token`)).status, 410);
+});

@@ -188,7 +188,7 @@ test('Free-TV keeps referrer and user agent requirements and can be filtered by 
 });
 
 test('every source has the fields the UI shows', () => {
-  assert.deepEqual(SOURCES.map((s) => s.id), ['world', 'more', 'free-tv']);
+  assert.deepEqual(SOURCES.map((s) => s.id), ['drama', 'world', 'more', 'free-tv']);
   for (const source of SOURCES) {
     for (const field of ['label', 'tagline', 'description', 'homepage']) assert.ok(source[field], `${source.id}.${field}`);
   }

@@ -21,7 +21,7 @@ export default function SourceTabs({ sources, current }) {
           aria-current={source.id === current ? 'page' : undefined}
         >
           <span className="source-tab-label">{source.label}</span>
-          <span className="source-tab-count">{source.available ? `${source.count.toLocaleString()} channels` : 'unavailable'}</span>
+          <span className="source-tab-count">{source.available ? (source.count == null ? `${source.categories} categories` : `${source.count.toLocaleString()} channels`) : 'unavailable'}</span>
         </Link>
       ))}
     </nav>

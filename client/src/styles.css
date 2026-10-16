@@ -678,7 +678,7 @@ button {
 /* ---------- tv: collections ---------- */
 .source-tabs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 14px;
 }
@@ -731,6 +731,25 @@ button {
 .source-intro a {
   color: var(--accent);
   white-space: nowrap;
+}
+
+/* Provider categories retain their original order and open a separate channel list. */
+.category-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 18px 0 24px; }
+.category-heading h1 { margin: 4px 0 8px; font-size: 1.9rem; }
+.category-heading p { margin: 0; }
+.category-heading .btn { flex-shrink: 0; }
+.eyebrow { color: var(--accent); font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.category-tile { min-height: 174px; padding: 24px 12px 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; text-decoration: none; transition: border-color .15s, transform .15s; }
+.category-tile:hover { border-color: var(--accent); transform: translateY(-2px); }
+.category-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.category-tile .channel-logo:not(.channel-logo-fallback) { background: var(--surface-2); }
+.category-name { color: var(--text); font-weight: 700; overflow-wrap: anywhere; }
+.category-hint { color: var(--muted); font-size: .78rem; }
+@media (max-width: 600px) {
+  .source-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .category-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
 }
 
 .skeleton {

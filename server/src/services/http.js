@@ -52,7 +52,7 @@ export async function assertPublicUrl(rawUrl) {
 }
 
 /** GET with redirects followed manually so every hop is checked. Returns the unread Response. */
-async function request(rawUrl, { referer, headers = {}, timeoutMs = config.requestTimeoutMs } = {}) {
+export async function request(rawUrl, { referer, headers = {}, timeoutMs = config.requestTimeoutMs, method = 'GET', body } = {}) {
   const signal = AbortSignal.timeout(timeoutMs);
   let current = rawUrl;
 
@@ -61,6 +61,8 @@ async function request(rawUrl, { referer, headers = {}, timeoutMs = config.reque
     const res = await fetch(url, {
       redirect: 'manual',
       signal,
+      method,
+      body,
       headers: {
         'user-agent': config.userAgent,
         accept: '*/*',
@@ -72,6 +74,9 @@ async function request(rawUrl, { referer, headers = {}, timeoutMs = config.reque
 
     if (res.status >= 300 && res.status < 400 && res.headers.has('location')) {
       await res.body?.cancel();
+      if (method !== 'GET' && method !== 'HEAD') {
+        throw new HttpError('Unexpected redirect for upstream POST');
+      }
       current = new URL(res.headers.get('location'), url).href;
       continue;
     }

@@ -22,7 +22,7 @@ function SourceCard({ source }) {
     <>
       <div className="hub-head">
         <h2 className="hub-name">{source.label}</h2>
-        <span className="hub-count">{source.available ? `${source.count.toLocaleString()} channels` : 'Unavailable'}</span>
+        <span className="hub-count">{source.available ? (source.count == null ? `${source.categories} categories` : `${source.count.toLocaleString()} channels`) : 'Unavailable'}</span>
       </div>
       <p className="hub-tagline">{source.tagline}</p>
       <p className="muted hub-desc">{source.description}</p>
@@ -71,7 +71,7 @@ export default function TvHub() {
       )}
       {loading && (
         <div className="hub-grid" aria-hidden="true">
-          {[0, 1, 2].map((i) => (
+          {[0, 1, 2, 3].map((i) => (
             <div key={i} className="card hub-card skeleton hub-skeleton" />
           ))}
         </div>
@@ -86,7 +86,7 @@ export default function TvHub() {
 
       {data && (
         <p className="muted fineprint">
-          The lists are community-maintained:{' '}
+          Channel sources:{' '}
           {[...new Map(data.sources.map((s) => [s.homepage, s])).values()].map((s, i) => (
             <span key={s.homepage}>
               {i > 0 && ' · '}
