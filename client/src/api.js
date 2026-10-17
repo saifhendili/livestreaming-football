@@ -56,7 +56,7 @@ export const fetchIptvStreams = async (source, id, { refresh = false, signal } =
   };
 };
 
-export const fetchMatches = (day, signal) => get(`/matches?day=${day}`, signal);
+export const fetchMatches = (day, source, signal) => get(`/matches${queryString({ day, source })}`, signal);
 export const fetchMatch = (id, signal) => get(`/matches/${id}`, signal);
 export const fetchStreams = (id, { refresh = false, signal } = {}) =>
   get(`/matches/${id}/streams${refresh ? '?refresh=1' : ''}`, signal);

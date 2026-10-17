@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
-import { DAYS, getMatch, getStreams, listMatches, toDto } from '../services/matches.js';
+import { DAYS, SOURCES, getMatch, getStreams, listMatches, toDto } from '../services/matches.js';
 
 export const matchesRouter = Router();
 
@@ -16,11 +16,12 @@ function parseId(id) {
 }
 
 matchesRouter.get('/', async (req, res) => {
-  const { day = 'today', status, q } = req.query;
+  const { day = 'today', status, q, source = 'fastshot' } = req.query;
+  if (!SOURCES.includes(source)) throw badRequest(`source must be one of: ${SOURCES.join(', ')}`);
   if (day !== 'all' && !DAYS.includes(day)) throw badRequest(`day must be one of: ${DAYS.join(', ')}, all`);
   if (status && !STATUSES.includes(status)) throw badRequest(`status must be one of: ${STATUSES.join(', ')}`);
 
-  res.json(await listMatches({ day, status, q: typeof q === 'string' ? q.trim().slice(0, 60) : undefined }));
+  res.json(await listMatches({ day, status, source, q: typeof q === 'string' ? q.trim().slice(0, 60) : undefined }));
 });
 
 matchesRouter.get('/:id', async (req, res) => {

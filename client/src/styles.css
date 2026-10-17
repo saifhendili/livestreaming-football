@@ -385,6 +385,10 @@ button {
   color: var(--muted);
 }
 
+.stage-action {
+  margin-top: 16px;
+}
+
 .player {
   position: relative;
   aspect-ratio: 16 / 9;

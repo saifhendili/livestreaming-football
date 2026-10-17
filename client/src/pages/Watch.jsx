@@ -15,11 +15,23 @@ const REASONS = {
 };
 
 function serverTag(server) {
+  if (server.type === 'link') return { text: 'Opens in new tab', cls: 'tag-muted' };
   if (!server.browserPlayable) return { text: 'External player', cls: 'tag-muted' };
   return server.adFree ? { text: 'Ad-free', cls: 'tag-good' } : { text: 'May show ads', cls: 'tag-warn' };
 }
 
 function Stage({ server, onFatal }) {
+  if (server.type === 'link') {
+    return (
+      <div className="stage-message">
+        <strong>This match plays on {server.label}&apos;s own site.</strong>
+        <p>Its player refuses to be embedded in other websites, so it opens in a new tab. That page may show ads.</p>
+        <a className="btn stage-action" href={server.url} target="_blank" rel="noreferrer noopener">
+          Watch on {server.label} ↗
+        </a>
+      </div>
+    );
+  }
   if (!server.browserPlayable) {
     return (
       <div className="stage-message">
@@ -206,7 +218,7 @@ export default function Watch() {
               );
             })}
           </div>
-          {selected && <StreamLink server={selected} />}
+          {selected && selected.type !== 'link' && <StreamLink server={selected} />}
         </section>
       )}
     </>

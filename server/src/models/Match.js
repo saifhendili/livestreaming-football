@@ -6,8 +6,9 @@ const streamServerSchema = new mongoose.Schema(
   {
     id: String,
     label: String,
-    // hls | dash | mp4 play in our own player; embed is a third-party page we can't unwrap.
-    type: { type: String, enum: ['hls', 'dash', 'mp4', 'embed'] },
+    // hls | dash | mp4 play in our own player; embed is a third-party page we can't unwrap;
+    // link is a page that refuses to be embedded, so it opens in its own tab.
+    type: { type: String, enum: ['hls', 'dash', 'mp4', 'embed', 'link'] },
     url: String,
     adFree: Boolean,
     // false when the stream refuses other origins: it only works in VLC, mpv, etc.
@@ -20,6 +21,8 @@ const matchSchema = new mongoose.Schema(
   {
     // Stable identity across refreshes: hash of date + teams.
     key: { type: String, required: true, unique: true },
+    // Where the match came from. Documents saved before there were two sources have no value: fast-shot.
+    source: { type: String, enum: ['fastshot', 'yacine'], default: 'fastshot' },
     date: { type: String, required: true, index: true }, // YYYY-MM-DD, source timezone
     home: teamSchema,
     away: teamSchema,

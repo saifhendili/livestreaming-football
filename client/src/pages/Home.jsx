@@ -10,6 +10,10 @@ const DAYS = [
   { id: 'today', label: 'Today' },
   { id: 'tomorrow', label: 'Tomorrow' },
 ];
+const SOURCES = [
+  { id: 'fastshot', label: 'Fast-Shot' },
+  { id: 'yacine', label: 'Yacine TV' },
+];
 const STATUSES = [
   { id: 'all', label: 'All' },
   { id: 'live', label: 'Live' },
@@ -25,6 +29,7 @@ export default function Home() {
   // Filters live in the URL so they survive going to a match and back.
   const [params, setParams] = useSearchParams();
   const day = DAYS.some((d) => d.id === params.get('day')) ? params.get('day') : 'today';
+  const source = SOURCES.some((s) => s.id === params.get('source')) ? params.get('source') : 'fastshot';
   const status = STATUSES.some((s) => s.id === params.get('status')) ? params.get('status') : 'all';
   const query = params.get('q') ?? '';
 
@@ -39,7 +44,7 @@ export default function Home() {
       { replace: true },
     );
 
-  const { data, error, loading } = usePoll((signal) => fetchMatches(day, signal), [day], REFRESH_MS);
+  const { data, error, loading } = usePoll((signal) => fetchMatches(day, source, signal), [day, source], REFRESH_MS);
   const matches = data?.matches ?? [];
 
   const counts = useMemo(() => {
@@ -71,6 +76,19 @@ export default function Home() {
   return (
     <>
       <div className="toolbar">
+        <div className="tabs" role="tablist" aria-label="Source">
+          {SOURCES.map((s) => (
+            <button
+              key={s.id}
+              role="tab"
+              aria-selected={source === s.id}
+              className={`tab ${source === s.id ? 'tab-active' : ''}`}
+              onClick={() => setParam('source', s.id, 'fastshot')}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
         <div className="tabs" role="tablist" aria-label="Day">
           {DAYS.map((d) => (
             <button

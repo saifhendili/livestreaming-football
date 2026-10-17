@@ -14,6 +14,8 @@ export const config = {
     .split(',')
     .map((origin) => origin.trim().replace(/\/+$/, ''))
     .filter(Boolean),
+  // Match feed behind yacinetv.website: today's matches around now, with a player page for each.
+  yacineApiUrl: process.env.YACINE_API_URL || 'https://cdn.kora-api.org/api/v1/matches',
   // The source publishes kick-off times in Egyptian time.
   sourceTimezone: 'Africa/Cairo',
   // How long a scraped day listing is considered fresh.

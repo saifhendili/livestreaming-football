@@ -1,0 +1,190 @@
+{
+  "date": "2026-10-17",
+  "from": "2026-10-16 20:00",
+  "to": "2026-10-18 06:00",
+  "count": 3,
+  "live_domain": "robotiva.online",
+  "en_live_domain": "goalikor.space",
+  "us_live_domain": "sportycos.com",
+  "all_edges": [
+    "a11",
+    "a12",
+    "a13",
+    "a14",
+    "a15",
+    "a16"
+  ],
+  "matches": [
+    {
+      "id": 398,
+      "date": "2026-10-17",
+      "time": "11:30",
+      "status": 1,
+      "status_label": "Live",
+      "stream_start": "2026-10-17 10:30:00",
+      "stream_end": "2026-10-17 14:30:00",
+      "stream_open": true,
+      "active": 1,
+      "has_channels": 1,
+      "ar_display": 1,
+      "en_display": 1,
+      "hot": 1,
+      "top": 0,
+      "league": {
+        "id": 50,
+        "name": "Premier League (England)",
+        "name_ar": "الدوري الإنجليزي الممتاز",
+        "logo": "uploads/leagues/af_league_39.png",
+        "country": "England"
+      },
+      "home": {
+        "id": 191,
+        "name": "Everton",
+        "name_ar": "إيفرتون",
+        "logo": "uploads/teams/af_team_45.png",
+        "score": 0
+      },
+      "away": {
+        "id": 188,
+        "name": "Chelsea",
+        "name_ar": "تشيلسي",
+        "logo": "uploads/teams/af_team_49.png",
+        "score": 1
+      },
+      "venue": {
+        "id": 287,
+        "name": "Hill Dickinson Stadium",
+        "name_ar": "Hill Dickinson Stadium",
+        "city": "Liverpool, Merseyside",
+        "city_ar": "Liverpool, Merseyside",
+        "country": "England",
+        "country_ar": "إنجلترا",
+        "capacity": 52888,
+        "image": "uploads/venues/af_venue_22033.jpg"
+      },
+      "edges": [
+        "a11",
+        "a12",
+        "a13",
+        "a14",
+        "a15",
+        "a16"
+      ],
+      "edge_domain": "kora-plus.li"
+    },
+    {
+      "id": 399,
+      "date": "2026-10-17",
+      "time": "14:00",
+      "status": 1,
+      "status_label": "Live",
+      "stream_start": "2026-10-17 13:00:00",
+      "stream_end": "2026-10-17 17:00:00",
+      "stream_open": false,
+      "active": 1,
+      "has_channels": 1,
+      "ar_display": 1,
+      "en_display": 1,
+      "hot": 0,
+      "top": 0,
+      "league": {
+        "id": 50,
+        "name": "Premier League (England)",
+        "name_ar": "الدوري الإنجليزي الممتاز",
+        "logo": "uploads/leagues/af_league_39.png",
+        "country": "England"
+      },
+      "home": {
+        "id": 186,
+        "name": "Brentford",
+        "name_ar": "برينتفورد",
+        "logo": "uploads/teams/af_team_55.png",
+        "score": null
+      },
+      "away": {
+        "id": 196,
+        "name": "Liverpool",
+        "name_ar": "ليفربول",
+        "logo": "uploads/teams/af_team_40.png",
+        "score": null
+      },
+      "venue": {
+        "id": 288,
+        "name": "Gtech Community Stadium",
+        "name_ar": "Gtech Community Stadium",
+        "city": "Brentford, Middlesex",
+        "city_ar": "Brentford, Middlesex",
+        "country": "England",
+        "country_ar": "إنجلترا",
+        "capacity": 17250,
+        "image": "uploads/venues/af_venue_10503.png"
+      },
+      "edges": [
+        "a11",
+        "a12",
+        "a13",
+        "a14",
+        "a15",
+        "a16"
+      ],
+      "edge_domain": "kora-plus.li"
+    },
+    {
+      "id": 408,
+      "date": "2026-10-17",
+      "time": "16:00",
+      "status": 0,
+      "status_label": "Upcoming",
+      "stream_start": "2026-10-17 15:00:00",
+      "stream_end": "2026-10-17 19:00:00",
+      "stream_open": false,
+      "active": 1,
+      "has_channels": 0,
+      "ar_display": 1,
+      "en_display": 1,
+      "hot": 0,
+      "top": 0,
+      "league": {
+        "id": 69,
+        "name": "Serie A",
+        "name_ar": "الدوري الإيطالي",
+        "logo": "uploads/leagues/af_league_135.png",
+        "country": "Italy"
+      },
+      "home": {
+        "id": 58,
+        "name": "Bologna",
+        "name_ar": "بولونيا",
+        "logo": "uploads/teams/af_team_500.png",
+        "score": null
+      },
+      "away": {
+        "id": 64,
+        "name": "Inter",
+        "name_ar": "إنتر ميلان",
+        "logo": "uploads/teams/af_team_505.png",
+        "score": null
+      },
+      "venue": {
+        "id": 124,
+        "name": "Stadio Renato Dall'Ara",
+        "name_ar": "ريناتو دالارا",
+        "city": "Bologna",
+        "city_ar": "بولونيا",
+        "country": "Italy",
+        "country_ar": "إيطاليا",
+        "capacity": 39279,
+        "image": "uploads/venues/af_venue_881.jpg"
+      },
+      "edges": [
+        "a11",
+        "a12",
+        "a13",
+        "a14",
+        "a15",
+        "a16"
+      ],
+      "edge_domain": "kora-plus.li"
+    }
+  ]
+}

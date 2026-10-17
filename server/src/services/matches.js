@@ -3,14 +3,33 @@ import { Match } from '../models/Match.js';
 import { fetchText } from './http.js';
 import { DAY_PATHS, dateForDay, parseListing } from './listing.js';
 import { resolveStreams } from './streams.js';
+import { parseFeed, yacineClient, yacineStreams } from './yacine.js';
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 
-const lastRefresh = new Map(); // day -> timestamp of last successful scrape
-const refreshing = new Map(); // day -> in-flight promise, so concurrent requests share one scrape
+const lastRefresh = new Map(); // day (or 'yacine') -> timestamp of last successful scrape
+const refreshing = new Map(); // day (or 'yacine') -> in-flight promise, so concurrent requests share one scrape
 const resolving = new Map(); // matchId -> in-flight promise
 
 export const DAYS = Object.keys(DAY_PATHS);
+export const SOURCES = ['fastshot', 'yacine'];
+
+const upsertMatches = (parsed) =>
+  Match.bulkWrite(
+    parsed.map((match) => ({
+      updateOne: {
+        filter: { key: match.key },
+        // $set only listing fields so cached streams survive a refresh.
+        update: {
+          $set: {
+            ...match,
+            expireAt: new Date((match.startsAt?.getTime() ?? Date.now()) + THREE_DAYS_MS),
+          },
+        },
+        upsert: true,
+      },
+    })),
+  );
 
 /** Scrape one day's listing and upsert it. */
 async function refreshDay(day) {
@@ -28,40 +47,41 @@ async function refreshDay(day) {
     return;
   }
 
-  await Match.bulkWrite(
-    parsed.map((match) => ({
-      updateOne: {
-        filter: { key: match.key },
-        // $set only listing fields so cached streams survive a refresh.
-        update: {
-          $set: {
-            ...match,
-            expireAt: new Date((match.startsAt?.getTime() ?? Date.now()) + THREE_DAYS_MS),
-          },
-        },
-        upsert: true,
-      },
-    })),
-  );
-  await Match.deleteMany({ date, key: { $nin: parsed.map((m) => m.key) } });
+  await upsertMatches(parsed);
+  await Match.deleteMany({ date, source: { $ne: 'yacine' }, key: { $nin: parsed.map((m) => m.key) } });
   lastRefresh.set(day, Date.now());
 }
 
-/** Refresh a day if its data is older than the TTL. Resolves true when we had to serve stale data. */
-async function ensureFresh(day) {
-  if (Date.now() - (lastRefresh.get(day) ?? 0) < config.listingTtlMs) return false;
+/** Fetch the Yacine feed, which covers every day at once, and upsert it. */
+async function refreshYacine() {
+  const parsed = parseFeed(await yacineClient.loadFeed(), { timezone: config.sourceTimezone });
 
-  if (!refreshing.has(day)) {
+  if (!parsed.length) {
+    console.warn('[scrape] yacine: no matches parsed, keeping existing data');
+    return;
+  }
+
+  await upsertMatches(parsed);
+  // The feed is the full window, so anything it no longer lists is gone.
+  await Match.deleteMany({ source: 'yacine', key: { $nin: parsed.map((m) => m.key) } });
+  lastRefresh.set('yacine', Date.now());
+}
+
+/** Refresh a day (or the Yacine feed) if its data is older than the TTL. Resolves true when we had to serve stale data. */
+async function ensureFresh(name, refresh) {
+  if (Date.now() - (lastRefresh.get(name) ?? 0) < config.listingTtlMs) return false;
+
+  if (!refreshing.has(name)) {
     refreshing.set(
-      day,
-      refreshDay(day).finally(() => refreshing.delete(day)),
+      name,
+      refresh().finally(() => refreshing.delete(name)),
     );
   }
   try {
-    await refreshing.get(day);
+    await refreshing.get(name);
     return false;
   } catch (err) {
-    console.error(`[scrape] ${day} failed: ${err.message}`);
+    console.error(`[scrape] ${name} failed: ${err.message}`);
     return true;
   }
 }
@@ -69,6 +89,7 @@ async function ensureFresh(day) {
 export function toDto(doc) {
   return {
     id: String(doc._id),
+    source: doc.source ?? 'fastshot',
     date: doc.date,
     home: doc.home,
     away: doc.away,
@@ -85,11 +106,17 @@ export function toDto(doc) {
 
 const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-export async function listMatches({ day = 'today', status, q } = {}) {
+export async function listMatches({ day = 'today', status, q, source = 'fastshot' } = {}) {
   const days = day === 'all' ? DAYS : [day];
-  const staleFlags = await Promise.all(days.map(ensureFresh));
+  const fromYacine = source === 'yacine';
+  const staleFlags = fromYacine
+    ? [await ensureFresh('yacine', refreshYacine)]
+    : await Promise.all(days.map((d) => ensureFresh(d, () => refreshDay(d))));
 
-  const filter = { date: { $in: days.map((d) => dateForDay(d, config.sourceTimezone)) } };
+  const filter = {
+    date: { $in: days.map((d) => dateForDay(d, config.sourceTimezone)) },
+    source: fromYacine ? 'yacine' : { $ne: 'yacine' },
+  };
   if (status) filter.status = status;
   if (q) {
     const rx = new RegExp(escapeRegex(q), 'i');
@@ -120,7 +147,7 @@ export async function getStreams(id, { force = false } = {}) {
   if (!resolving.has(id)) {
     resolving.set(
       id,
-      resolveStreams(match)
+      (match.source === 'yacine' ? Promise.resolve(yacineStreams(match)) : resolveStreams(match))
         .then(async (result) => {
           const streams = { ...result, resolvedAt: new Date() };
           await Match.updateOne({ _id: id }, { $set: { streams } });

@@ -4,6 +4,8 @@ A MERN app that lists today's football matches and plays their live streams in a
 
 It reads match listings and stream servers from [fast-shot.com](https://fast-shot.com/). When you open a match, the server works out the real stream link for each server and the app plays it in its own player.
 
+A second match source, **Yacine TV**, is a tab on the Matches page. It reads the match feed behind [yacinetv.website](https://yacinetv.website/) (`YACINE_API_URL`). Yacine's player only runs on its own domains, so its matches open on Yacine's site in a new tab instead of playing in the app.
+
 - **M**ongoDB: stores scraped matches and cached stream links
 - **E**xpress: scrapes the source and serves a small JSON API
 - **R**eact (Vite): match list, watch page, hls.js player
